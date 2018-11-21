@@ -1,0 +1,39 @@
+body{
+  background-color: black;
+  color: gainsboro;
+}
+#title {
+  margin-top: 10px;
+  font-family: times new roman;
+  font-size: 24px;
+}
+p {
+  margin-top: 10px;
+  font-size: 12px;
+}
+svg {
+  background-color: #101010;
+  border-radius: 5px;
+}
+.bar:hover {
+  fill: orange;
+  opacity: 0.7;
+  -webkit-transition: opacity 700ms; /* Safari */
+  transition: opacity 700ms;
+}
+
+#tooltip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  text-align: center;
+  width: 120px;
+  height: 40px;
+  padding: 2px;
+  font-size: 13px;
+  background: darkred;
+  box-shadow: 0px 0px 7px;
+  border-radius: 3px;
+  pointer-events: none;
+}

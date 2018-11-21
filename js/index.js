@@ -1,0 +1,140 @@
+var w = 1000;
+var h = 500;
+var barWidth = w / 275;
+var padding = 50;
+
+var tooltip = d3.select("#chart")
+                .append("div")
+                .attr("id", "tooltip")
+                .style("opacity", 0.0); // hide the tooltip
+
+var svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h);
+
+// depending on the D3 version we load
+// D3 V4: d3.json("url", function(error, data) { ... })
+// D3 V5: d3.json("url").then(function(data) { ... })   .catch(function(error) { ... })
+// https://stackoverflow.com/questions/49768165/code-within-d3-json-callback-is-not-executed
+
+d3.json("https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json").then(function (data) {
+
+  //axes and scaling here
+  // create new array yearAndQtr from dataset json. using date values from the object key "data"
+  // map() method creates a new array with the results of calling a function for every array element.
+  var yearAndQtr = data.data.map(function (item) {
+    var quarter = "";
+    var qNumber = item[0].substring(5, 7);
+    // item[0] is first item inside array, ie the date string. eg "1947-01-01"
+    // substring() method extracts the characters from the string. and return new sub string
+    // eg. substring(5,7) will return "04" for "1947-04-01"
+
+    if (qNumber === "01") {
+      quarter = "Q1";
+    } else
+    if (qNumber === "04") {
+      quarter = "Q2";
+    } else
+    if (qNumber === "07") {
+      quarter = "Q3";
+    } else
+    if (qNumber === "10") {
+      quarter = "Q4";
+    }
+    return item[0].substring(0, 4) + " " + quarter; // eg 1947 Q1
+  });
+  // final result for yearAndQtr would be an array ["1947Q1", "1947Q2",... "2015Q3"]
+
+  var yearsDate = data.data.map(function (item) {
+    return new Date(item[0]); // date objects are created with new Date() constructor
+  });
+  // new Date() creates a new date with the current date and time
+  // item[0]: eg "1947-01-01", "1947-04-01", etc. note the "" in the json data
+  // new Date(dateString) creates a new date object from a date string
+  // in the above it is JavaScript ISO Dates. var yearsDate = new Date("1947-01-01");
+  // https://www.w3schools.com/js/js_dates.asp  &   https://www.w3schools.com/js/js_date_formats.asp
+  // yearsDate is an array of objects, [{},{},{},...{}]
+
+  var xMax = new Date(d3.max(yearsDate)); // = new Date("2015-07-01")
+  xMax.setMonth(xMax.getMonth() + 3); // xMax.getMonth() returns 6, xMax.setMonth(6+3) will return the month October
+  var xScale = d3.scaleTime()
+                 .domain([d3.min(yearsDate), xMax]) // .domain("1947-01", "2015-10"), equivalent to 68yrs 9mths, or 825mths, or 275quarters
+                 .range([padding, w - padding]);
+
+  var xAxis = d3.axisBottom(xScale);
+
+  svg.append("g")
+     .attr("transform", "translate(0, " + (h - padding) + ")")
+     .attr("id", "x-axis")
+     .style("color", "white")
+     .call(xAxis);
+
+  // now do for data on the y-axis. similar to var yearsDate
+  // extract the json data for gross domestic product and map to new array as var GDP
+  var GDP = data.data.map(function (item) {
+    return item[1];
+  });
+
+  var minGDP = d3.min(GDP);
+  var maxGDP = d3.max(GDP);
+
+  var yScale = d3.scaleLinear()
+                 .domain([0, maxGDP])
+                 .range([h - padding, padding]);
+
+  var yAxis = d3.axisLeft(yScale);
+
+  svg.append("g")
+     .attr("transform", "translate(" + padding + ",0)")
+     .attr("id", "y-axis")
+     .style("color", "white")
+     .call(yAxis);
+
+  // label y-axis
+  svg.append("text")
+     .attr('transform', 'rotate(-90)')
+     .attr('x', -250)
+     .attr('y', 70)
+     .attr("font-size", 14)
+     .style("fill", "silver")
+     .style("font-weight", 500)
+     .text('Gross Domestic Product (Billion)');
+
+
+
+
+  svg.selectAll("rect") //at line 103 of example
+     .data(GDP)
+     .enter()
+     .append("rect")
+     .attr("data-date", function (d, i) {return data.data[i][0];})
+     .attr("data-gdp", function (d, i) {return data.data[i][1];})
+     .attr("x", function (d, i) {return xScale(yearsDate[i]);}) // yearsDate is the array of dates data from main json
+  // i is index of data point in array. we want the x attribute callback function to return for the total number of indexes (which is 275)
+     .attr("y", function (d) {return yScale(d);})
+     .attr("width", barWidth)
+     .attr("height", function (d) {return h - padding - yScale(d);}) // rmbr to scale the bar height
+     .attr("fill", "darkorange")
+     .attr("opacity", 0.5)
+     .attr("class", "bar")
+  // check out https://stackoverflow.com/questions/17410082/appending-multiple-svg-text-with-d3
+     .on("mouseover", function (d, i) {
+       tooltip.transition()
+              .duration(300)
+              .style('opacity', 0.7);
+       tooltip.html(yearAndQtr[i] + "<br>" + "$" + GDP[i] + " Billion")
+              .attr("data-date", data.data[i][0])
+    //    .style('left', (i * barWidth) + 30 + 'px')    // does not work
+              .style("left", i * (barWidth - padding * 2 / 275) + 140 + "px") // (i * barWidth) does not work. thus included minus padding*2/275. and plus 140 px ???
+              .style("top", h - 110 + "px")
+              .style("transform", "translateX(" + padding + "px)");
+      })
+     .on("mouseout", function (d) {
+       tooltip.transition()
+              .duration(300)
+              .style("opacity", 0);
+      });
+
+
+});
